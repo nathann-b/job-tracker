@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nathan Brown — Job Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --surface: #111113;
+    --surface2: #18181c;
+    --border: #222226;
+    --border2: #2e2e34;
+    --text: #f0f0f2;
+    --text-dim: #78788a;
+    --text-dimmer: #44444f;
+    --accent: #c8f542;
+    --accent-dim: #9ab832;
+    --pending: #f5c842;
+    --interview: #42b8f5;
+    --offer: #42f5a0;
+    --rejected: #f55a42;
+    --withdrawn: #a078f5;
+    --applied: #78788a;
+    --font: 'Syne', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* grain overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 40px 48px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .logo-block h1 {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    font-family: var(--mono);
+  }
+
+  .logo-block h2 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .logo-block h2 span { color: var(--accent); }
+
+  .header-stats {
+    display: flex;
+    gap: 2px;
+  }
+
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 14px 22px;
+    text-align: center;
+    min-width: 80px;
+  }
+
+  .stat:first-child { border-radius: 8px 0 0 8px; }
+  .stat:last-child { border-radius: 0 8px 8px 0; }
+
+  .stat-num {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+    font-family: var(--mono);
+  }
+
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-top: 4px;
+    font-family: var(--mono);
+  }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    padding: 20px 48px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+    max-width: 340px;
+  }
+
+  .search-wrap svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dimmer);
+    pointer-events: none;
+  }
+
+  .search-wrap input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 10px 14px 10px 40px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-wrap input::placeholder { color: var(--text-dimmer); }
+
+  .filter-tabs {
+    display: flex;
+    gap: 4px;
+  }
+
+  .filter-tab {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-tab:hover { border-color: var(--border2); color: var(--text); }
+  .filter-tab.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+
+  .add-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 20px;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: all 0.15s;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  .add-btn:hover { background: #d9ff55; transform: translateY(-1px); }
+
+  /* ── TABLE ── */
+  .table-wrap {
+    padding: 24px 48px 48px;
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+  }
+
+  thead th {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dimmer);
+    padding: 0 16px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+    white-space: nowrap;
+  }
+
+  thead th:first-child { padding-left: 0; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+    animation: fadeIn 0.25s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  tbody tr:hover { background: var(--surface); }
+
+  tbody td {
+    padding: 14px 16px;
+    vertical-align: middle;
+    font-size: 14px;
+  }
+
+  tbody td:first-child { padding-left: 0; }
+
+  .td-company { font-weight: 700; font-size: 15px; }
+
+  .td-title { color: var(--text-dim); font-size: 13px; }
+
+  .td-date {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .td-type {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .td-notes {
+    font-size: 12px;
+    color: var(--text-dim);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .td-actions {
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  /* STATUS SELECT */
+  .status-select {
+    appearance: none;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 28px 5px 10px;
+    cursor: pointer;
+    outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2378788a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: all 0.15s;
+    min-width: 110px;
+  }
+
+  .status-select:focus { border-color: var(--accent); }
+
+  .status-select[data-status="applied"]   { background-color: #1a1a1e; color: var(--applied); }
+  .status-select[data-status="pending"]   { background-color: #2a2310; color: var(--pending); border-color: #3d3318; }
+  .status-select[data-status="interview"] { background-color: #0e1e2a; color: var(--interview); border-color: #1a3040; }
+  .status-select[data-status="offer"]     { background-color: #0e2a1e; color: var(--offer); border-color: #1a4030; }
+  .status-select[data-status="rejected"]  { background-color: #2a0e0e; color: var(--rejected); border-color: #401a1a; }
+  .status-select[data-status="withdrawn"] { background-color: #1e1628; color: var(--withdrawn); border-color: #2e2040; }
+
+  .delete-btn {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--text-dimmer);
+    cursor: pointer;
+    padding: 5px 8px;
+    font-size: 14px;
+    line-height: 1;
+    margin-left: 8px;
+    transition: all 0.15s;
+  }
+
+  .delete-btn:hover { border-color: var(--rejected); color: var(--rejected); background: #2a0e0e; }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center;
+    padding: 80px 24px;
+    display: none;
+  }
+
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+
+  .empty h3 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-dim);
+  }
+
+  .empty p {
+    font-size: 14px;
+    color: var(--text-dimmer);
+    margin-bottom: 24px;
+  }
+
+  /* ── MODAL ── */
+  .modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .modal-bg.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 32px;
+    width: 100%;
+    max-width: 520px;
+    animation: slideUp 0.2s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+
+  .modal-header h3 {
+    font-size: 20px;
+    font-weight: 800;
+  }
+
+  .modal-close {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 6px 10px;
+    font-size: 16px;
+    line-height: 1;
+    transition: all 0.15s;
+  }
+
+  .modal-close:hover { border-color: var(--border2); color: var(--text); }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-field.full { grid-column: 1 / -1; }
+
+  label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dimmer);
+  }
+
+  input[type="text"],
+  input[type="url"],
+  input[type="date"],
+  select.form-select,
+  textarea {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+
+  input[type="text"]:focus,
+  input[type="url"]:focus,
+  input[type="date"]:focus,
+  select.form-select:focus,
+  textarea:focus { border-color: var(--accent); }
+
+  input::placeholder, textarea::placeholder { color: var(--text-dimmer); }
+
+  textarea { resize: vertical; min-height: 72px; }
+
+  select.form-select { appearance: none; cursor: pointer; }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.5);
+    cursor: pointer;
+  }
+
+  .modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 24px;
+  }
+
+  .btn-cancel {
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text-dim);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-cancel:hover { border-color: var(--border2); color: var(--text); background: var(--surface2); }
+
+  .btn-save {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 28px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-save:hover { background: #d9ff55; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-block">
+    <h1>Nathan Brown</h1>
+    <h2>Job <span>Tracker</span></h2>
+  </div>
+  <div class="header-stats">
+    <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total</div></div>
+    <div class="stat"><div class="stat-num" id="stat-pending" style="color:var(--pending)">0</div><div class="stat-label">Active</div></div>
+    <div class="stat"><div class="stat-num" id="stat-interview" style="color:var(--interview)">0</div><div class="stat-label">Interview</div></div>
+    <div class="stat"><div class="stat-num" id="stat-offer" style="color:var(--offer)">0</div><div class="stat-label">Offers</div></div>
+    <div class="stat"><div class="stat-num" id="stat-rejected" style="color:var(--rejected)">0</div><div class="stat-label">Rejected</div></div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="search-wrap">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="search" placeholder="Search company or role...">
+  </div>
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-filter="all">All</button>
+    <button class="filter-tab" data-filter="applied">Applied</button>
+    <button class="filter-tab" data-filter="pending">Pending</button>
+    <button class="filter-tab" data-filter="interview">Interview</button>
+    <button class="filter-tab" data-filter="offer">Offer</button>
+    <button class="filter-tab" data-filter="rejected">Rejected</button>
+  </div>
+  <button class="add-btn" onclick="openModal()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+    Add Application
+  </button>
+</div>
+
+<div class="table-wrap">
+  <table id="app-table">
+    <thead>
+      <tr>
+        <th>Company</th>
+        <th>Job Title</th>
+        <th>Type</th>
+        <th>Applied</th>
+        <th>Location</th>
+        <th>Notes</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+  <div class="empty" id="empty-state">
+    <div class="empty-icon">📋</div>
+    <h3>No applications yet</h3>
+    <p>Start tracking your job search by adding your first application.</p>
+    <button class="add-btn" style="margin:0 auto" onclick="openModal()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      Add Application
+    </button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modal-bg" onclick="closeOnBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">New Application</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label>Company *</label>
+        <input type="text" id="f-company" placeholder="e.g. Google">
+      </div>
+      <div class="form-field">
+        <label>Job Title *</label>
+        <input type="text" id="f-title" placeholder="e.g. Software Engineer">
+      </div>
+      <div class="form-field">
+        <label>Job Type</label>
+        <select class="form-select" id="f-type">
+          <option value="Full-time">Full-time</option>
+          <option value="Internship">Internship</option>
+          <option value="Part-time">Part-time</option>
+          <option value="Contract">Contract</option>
+          <option value="Co-op">Co-op</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Date Applied</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="form-field">
+        <label>Location</label>
+        <input type="text" id="f-location" placeholder="e.g. Atlanta, GA / Remote">
+      </div>
+      <div class="form-field">
+        <label>Status</label>
+        <select class="form-select" id="f-status">
+          <option value="applied">Applied</option>
+          <option value="pending">Pending Response</option>
+          <option value="interview">Interview</option>
+          <option value="offer">Offer</option>
+          <option value="rejected">Rejected</option>
+          <option value="withdrawn">Withdrawn</option>
+        </select>
+      </div>
+      <div class="form-field full">
+        <label>Job Posting URL</label>
+        <input type="url" id="f-url" placeholder="https://...">
+      </div>
+      <div class="form-field full">
+        <label>Notes</label>
+        <textarea id="f-notes" placeholder="Recruiter name, referral, interview details, salary range..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveApplication()">Save Application</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const STATUS_LABELS = {
+    applied:   'Applied',
+    pending:   'Pending',
+    interview: 'Interview',
+    offer:     'Offer',
+    rejected:  'Rejected',
+    withdrawn: 'Withdrawn'
+  };
+
+  let apps = JSON.parse(localStorage.getItem('job-apps') || '[]');
+  let editId = null;
+  let activeFilter = 'all';
+  let searchQuery = '';
+
+  // Set today's date as default
+  document.getElementById('f-date').valueAsDate = new Date();
+
+  function save() {
+    localStorage.setItem('job-apps', JSON.stringify(apps));
+    render();
+    updateStats();
+  }
+
+  function updateStats() {
+    document.getElementById('stat-total').textContent = apps.length;
+    document.getElementById('stat-pending').textContent = apps.filter(a => a.status === 'pending' || a.status === 'applied').length;
+    document.getElementById('stat-interview').textContent = apps.filter(a => a.status === 'interview').length;
+    document.getElementById('stat-offer').textContent = apps.filter(a => a.status === 'offer').length;
+    document.getElementById('stat-rejected').textContent = apps.filter(a => a.status === 'rejected').length;
+  }
+
+  function render() {
+    const tbody = document.getElementById('table-body');
+    const empty = document.getElementById('empty-state');
+
+    let filtered = apps.filter(a => {
+      const matchFilter = activeFilter === 'all' || a.status === activeFilter;
+      const q = searchQuery.toLowerCase();
+      const matchSearch = !q || a.company.toLowerCase().includes(q) || a.title.toLowerCase().includes(q) || (a.location||'').toLowerCase().includes(q);
+      return matchFilter && matchSearch;
+    });
+
+    // Sort: most recently applied first
+    filtered.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      document.getElementById('app-table').style.display = apps.length === 0 ? 'none' : 'table';
+    } else {
+      empty.style.display = 'none';
+      document.getElementById('app-table').style.display = 'table';
+      tbody.innerHTML = filtered.map((a, i) => `
+        <tr style="animation-delay:${i * 0.04}s">
+          <td class="td-company">${esc(a.company)}${a.url ? ` <a href="${esc(a.url)}" target="_blank" style="color:var(--accent);font-size:11px;margin-left:4px;text-decoration:none;" title="View posting">↗</a>` : ''}</td>
+          <td class="td-title">${esc(a.title)}</td>
+          <td class="td-type">${esc(a.type||'')}</td>
+          <td class="td-date">${fmtDate(a.date)}</td>
+          <td class="td-date">${esc(a.location||'—')}</td>
+          <td class="td-notes" title="${esc(a.notes||'')}">${esc(a.notes||'—')}</td>
+          <td>
+            <select class="status-select" data-status="${a.status}" onchange="updateStatus('${a.id}', this)">
+              ${Object.entries(STATUS_LABELS).map(([v,l]) => `<option value="${v}"${a.status===v?' selected':''}>${l}</option>`).join('')}
+            </select>
+          </td>
+          <td class="td-actions">
+            <button class="delete-btn" onclick="editApp('${a.id}')" title="Edit" style="color:var(--text-dim)">✏</button>
+            <button class="delete-btn" onclick="deleteApp('${a.id}')" title="Delete">✕</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+  }
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function fmtDate(d) {
+    if (!d) return '—';
+    const [y,m,day] = d.split('-');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[+m-1]} ${+day}, ${y}`;
+  }
+
+  function updateStatus(id, sel) {
+    const a = apps.find(x => x.id === id);
+    if (a) { a.status = sel.value; sel.dataset.status = sel.value; save(); }
+  }
+
+  function deleteApp(id) {
+    if (!confirm('Remove this application?')) return;
+    apps = apps.filter(x => x.id !== id);
+    save();
+  }
+
+  function editApp(id) {
+    const a = apps.find(x => x.id === id);
+    if (!a) return;
+    editId = id;
+    document.getElementById('modal-title').textContent = 'Edit Application';
+    document.getElementById('f-company').value = a.company;
+    document.getElementById('f-title').value = a.title;
+    document.getElementById('f-type').value = a.type || 'Full-time';
+    document.getElementById('f-date').value = a.date || '';
+    document.getElementById('f-location').value = a.location || '';
+    document.getElementById('f-status').value = a.status;
+    document.getElementById('f-url').value = a.url || '';
+    document.getElementById('f-notes').value = a.notes || '';
+    document.getElementById('modal-bg').classList.add('open');
+  }
+
+  function openModal() {
+    editId = null;
+    document.getElementById('modal-title').textContent = 'New Application';
+    document.getElementById('f-company').value = '';
+    document.getElementById('f-title').value = '';
+    document.getElementById('f-type').value = 'Full-time';
+    document.getElementById('f-date').valueAsDate = new Date();
+    document.getElementById('f-location').value = '';
+    document.getElementById('f-status').value = 'applied';
+    document.getElementById('f-url').value = '';
+    document.getElementById('f-notes').value = '';
+    document.getElementById('modal-bg').classList.add('open');
+    setTimeout(() => document.getElementById('f-company').focus(), 100);
+  }
+
+  function closeModal() {
+    document.getElementById('modal-bg').classList.remove('open');
+    editId = null;
+  }
+
+  function closeOnBg(e) {
+    if (e.target === document.getElementById('modal-bg')) closeModal();
+  }
+
+  function saveApplication() {
+    const company = document.getElementById('f-company').value.trim();
+    const title = document.getElementById('f-title').value.trim();
+    if (!company || !title) {
+      alert('Company and Job Title are required.');
+      return;
+    }
+    const data = {
+      company,
+      title,
+      type: document.getElementById('f-type').value,
+      date: document.getElementById('f-date').value,
+      location: document.getElementById('f-location').value.trim(),
+      status: document.getElementById('f-status').value,
+      url: document.getElementById('f-url').value.trim(),
+      notes: document.getElementById('f-notes').value.trim(),
+    };
+    if (editId) {
+      const idx = apps.findIndex(x => x.id === editId);
+      apps[idx] = { ...apps[idx], ...data };
+    } else {
+      data.id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+      apps.push(data);
+    }
+    save();
+    closeModal();
+  }
+
+  // Filter tabs
+  document.querySelectorAll('.filter-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      render();
+    });
+  });
+
+  // Search
+  document.getElementById('search').addEventListener('input', e => {
+    searchQuery = e.target.value;
+    render();
+  });
+
+  // Keyboard shortcut: N to open modal
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+    if (e.key === 'n' && !e.target.matches('input,textarea,select') && document.getElementById('modal-bg').classList.contains('open') === false) openModal();
+  });
+
+  // Init
+  render();
+  updateStats();
+</script>
+</body>
+</html>
